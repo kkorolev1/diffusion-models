@@ -1,3 +1,4 @@
 .idea/*
 data/*
 *.pt
+model/__pycache__/*
