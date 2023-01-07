@@ -33,6 +33,7 @@ def main(args):
     start_epoch = 0
 
     if os.path.exists(args.path):
+        loss = float("inf")
         try:
             model, optimizer, scheduler, start_epoch, loss = load_model(model, optimizer, scheduler, args.path)
         except Exception as exc:
@@ -54,9 +55,9 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser(description='DDPM on CIFAR10')
     parser.add_argument('command', help='train or sample')
-    parser.add_argument('-b', '--batch-size', type=int, help='Batch size', default=64)
+    parser.add_argument('-b', '--batch-size', type=int, help='Batch size', default=128)
     parser.add_argument('-e', '--epochs', type=int, help='Number of epochs', default=20)
-    parser.add_argument('-lr', type=float, help='Adam learning rate', default=1e-3)
+    parser.add_argument('-lr', type=float, help='Adam learning rate', default=2e-4)
     parser.add_argument('-n', '--samples', type=int, help='Number of samples to generate', default=16)
     parser.add_argument('-s', '--step', type=int, help='Step of time during sampling', default=100)
     parser.add_argument('-p', '--path', help='Path to load/save the model', default='bin/ddpm.pth')
