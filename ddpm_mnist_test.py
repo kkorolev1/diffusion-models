@@ -8,7 +8,7 @@ import os
 
 from model.datasets import get_MNIST
 from model.ddpm import DDPM
-from model.unet import UNet
+from model.v1.unet import Unet
 from model.training import train, sample
 from model.utils import SaveBestModel, load_model
 
@@ -22,7 +22,7 @@ def main(args):
     print(f'Using device {device}')
 
     n_epochs = args.epochs
-    model = DDPM(UNet().to(device), device=device)
+    model = DDPM(Unet().to(device), device=device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.MSELoss()
 
