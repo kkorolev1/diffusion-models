@@ -5,13 +5,9 @@ import seaborn as sns
 import os
 
 def plot_images(images, title, output_filename=None):
-    #images[:, 0, ...] = images[:, 0, ...] * 0.2470 + 0.4914
-    #images[:, 1, ...] = images[:, 1, ...] * 0.2435 + 0.4822
-    #images[:, 2, ...] = images[:, 2, ...] * 0.2616 + 0.4465
-
     images = images * 0.5 + 0.5
     np_images = images.detach().cpu().numpy()
-    #np_images = np.clip(np_images, 0, 1)
+    np_images = np.clip(np_images, 0, 1)
 
     fig = plt.figure(figsize=(10,10))
 
@@ -23,13 +19,14 @@ def plot_images(images, title, output_filename=None):
         for j in range(n_cols):
             fig.add_subplot(n_rows, n_cols, index + 1)
             plt.axis('off')
-            plt.imshow(np_images[index][0,...], cmap='gray')
-            #plt.imshow(np.transpose(np_images[index], (1, 2, 0)), cmap='gray')
-            if output_filename is not None:
-                plt.savefig(output_filename)
+            plt.imshow(np.transpose(np_images[index], (1, 2, 0)), cmap='gray')
             index += 1
+    
     fig.suptitle(title, fontsize=20)
     plt.show()
+
+    if output_filename is not None:
+        plt.savefig(output_filename)
 
 class SaveBestModel:
     def __init__(self, best_val_loss=np.inf):
