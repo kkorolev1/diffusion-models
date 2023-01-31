@@ -15,6 +15,7 @@ from model.utils import SaveBestModel, load_model, plot_images
 from model.metrics import fid_score
 
 import gc
+from tqdm import tqdm
 
 
 def main(args):
@@ -61,7 +62,7 @@ def main(args):
         print(f'Sampling {num_samples} images...')
         
         img_shape = dataloader.dataset[0][0].shape
-        sampled_images = sample(model, num_samples, img_shape, args.batch_size, device, step=args.step)
+        sampled_images = sample(model, num_samples, img_shape, args.batch_size, device)
         
         if not os.path.exists(args.output):
             os.mkdir(args.output)
@@ -72,12 +73,19 @@ def main(args):
         print('Calculating metrics...')
         real_data = []
 
-        for images, _ in dataloader:
-            real_data.append(images)
+        #for images, _ in tqdm(dataloader, desc='Collecting real data'):
+        #    real_data.append(images)
         
         print('Real data is collected')
         real_data = torch.cat(real_data, dim=0)
-        fake_data = real_data #sample(models, )
+
+        img_shape = dataloader.dataset[0][0].shape
+        num_samples = max(args.samples, batch_size)
+
+        print('Sampling fake data...')
+        fake_data = sample(model, num_samples, img_shape, args.batch_size, device)
+        torch.save(fake_data, 'fake_data.pt')
+
         fid = fid_score(real_data, fake_data)
 
         print('FID {:.5f}'.format(fid))
@@ -92,7 +100,6 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--epochs', type=int, help='Number of epochs', default=20)
     parser.add_argument('-lr', type=float, help='Adam learning rate', default=2e-4)
     parser.add_argument('-n', '--samples', type=int, help='Number of samples to generate', default=16)
-    parser.add_argument('-s', '--step', type=int, help='Step of time during sampling', default=100)
     parser.add_argument('-p', '--path', help='Path to load/save the model', default='bin/ddpm.pth')
     parser.add_argument('-o', '--output', help='Output directory', default='out')
     parser.add_argument('-c', '--cuda', type=int, help='CUDA device', default=0)

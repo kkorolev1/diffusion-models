@@ -3,7 +3,7 @@ from tqdm import tqdm
 import os
 
 
-def sample(model, n_samples, img_shape, batch_size, device, step):
+def sample(model, n_samples, img_shape, batch_size, device):
     model.eval()
     slicer = range(0, n_samples, batch_size)
     sampled_images = []

@@ -31,9 +31,8 @@ def get_CIFAR10(batch_size, val_size=0.1):
         #transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
     ])
 
-    dataset = CIFAR10('../data', train=True, download=True, transform=transform)
-    train_idxs, val_idxs = random_split(range(len(dataset)), [1 - val_size, val_size])
-
+    dataset = CIFAR10('./data', train=True, download=True, transform=transform)
+    #train_idxs, val_idxs = random_split(range(len(dataset)), [1 - val_size, val_size])
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
     return dataloader
