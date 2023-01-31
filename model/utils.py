@@ -23,10 +23,11 @@ def plot_images(images, title, output_filename=None):
             index += 1
     
     fig.suptitle(title, fontsize=20)
-    plt.show()
 
     if output_filename is not None:
         plt.savefig(output_filename)
+
+    plt.show()
 
 class SaveBestModel:
     def __init__(self, best_val_loss=np.inf):

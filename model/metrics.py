@@ -67,7 +67,7 @@ def frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
     diff = mu1 - mu2
     
-    return  (diff**2).sum() + np.trace(sigma1 + sigma2 - 2 * sigma1_sigma2)
+    return (diff**2).sum() + np.trace(sigma1 + sigma2 - 2 * sigma1_sigma2)
 
 def fid_score(real_data, fake_data):
     # Run inception on real and fake data to obtain activations
@@ -78,4 +78,4 @@ def fid_score(real_data, fake_data):
     real_mu, real_sigma = calculate_activation_statistics(real_activations)
     fake_mu, fake_sigma = calculate_activation_statistics(fake_activations)
 
-    return frechet_distance(real_mu, real_sigma, fake_mu, fake_sigma)
+    return frechet_distance(real_mu, real_sigma, fake_mu, fake_sigma).item()

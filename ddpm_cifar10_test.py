@@ -73,8 +73,8 @@ def main(args):
         print('Calculating metrics...')
         real_data = []
 
-        #for images, _ in tqdm(dataloader, desc='Collecting real data'):
-        #    real_data.append(images)
+        for images, _ in tqdm(dataloader, desc='Collecting real data'):
+            real_data.append(images)
         
         print('Real data is collected')
         real_data = torch.cat(real_data, dim=0)
