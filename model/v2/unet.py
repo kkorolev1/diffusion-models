@@ -75,7 +75,7 @@ class AttentionBlock(nn.Module):
         super().__init__()
         
         num_groups = 32
-        self.group_norm = nn.GroupNorm(num_groups=32, num_channels=in_channels)
+        self.group_norm = nn.GroupNorm(num_groups=num_groups, num_channels=in_channels)
         self.proj_q = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1, stride=1, padding=0)
         self.proj_k = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1, stride=1, padding=0)
         self.proj_v = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=1, stride=1, padding=0)

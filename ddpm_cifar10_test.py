@@ -1,4 +1,4 @@
-#!/home/kakorolev/.conda/envs/kkorolev/bin/python3
+#!/home/kirill_k/anaconda3/bin/python3
 
 import torch
 import torch.nn as nn
@@ -20,11 +20,13 @@ from tqdm import tqdm
 
 def main(args):
     batch_size = args.batch_size
+    num_samples = max(args.samples, batch_size)
 
     print(f'Batch size {batch_size}')
 
     print('Loading CIFAR10...')
     dataloader = get_CIFAR10(batch_size=batch_size)
+    img_shape = dataloader.dataset[0][0].shape
 
     device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() else "cpu")
     print(f'Using device {device}')
@@ -42,8 +44,8 @@ def main(args):
     start_epoch = 0
 
     # Empty cache
-    torch.cuda.empty_cache()
-    print("Collected: {}".format(gc.collect()))
+    #torch.cuda.empty_cache()
+    #print("Collected: {}".format(gc.collect()))
 
     if os.path.exists(args.path):
         loss = float("inf")
@@ -58,11 +60,9 @@ def main(args):
         print('Training the model...')
         loss_log = train(model, dataloader, optimizer, criterion, device, scheduler=None, n_epochs=start_epoch + n_epochs, start_epoch=start_epoch, model_path=args.path, model_saver=model_saver)
     elif args.command == 'sample':
-        num_samples = max(args.samples, batch_size)
         print(f'Sampling {num_samples} images...')
         
-        img_shape = dataloader.dataset[0][0].shape
-        sampled_images = sample(model, num_samples, img_shape, args.batch_size, device)
+        sampled_images = sample(model, num_samples, img_shape, batch_size, device)
         
         if not os.path.exists(args.output):
             os.mkdir(args.output)
@@ -72,23 +72,34 @@ def main(args):
     elif args.command == 'metrics':
         print('Calculating metrics...')
         real_data = []
-
-        for images, _ in tqdm(dataloader, desc='Collecting real data'):
+        
+        for i, (images, _) in enumerate(tqdm(dataloader, desc='Collecting real data')):
+            if i == num_samples // batch_size:
+                break
             real_data.append(images)
         
         print('Real data is collected')
         real_data = torch.cat(real_data, dim=0)
 
-        img_shape = dataloader.dataset[0][0].shape
-        num_samples = max(args.samples, batch_size)
-
         print('Sampling fake data...')
-        fake_data = sample(model, num_samples, img_shape, args.batch_size, device)
-        torch.save(fake_data, 'fake_data.pt')
+        fake_data = torch.load('fake_data.pt')
+
+        #fake_data = sample(model, num_samples, img_shape, batch_size, device)
+        #torch.save(fake_data, 'fake_data.pt')
 
         fid = fid_score(real_data, fake_data)
 
         print('FID {:.5f}'.format(fid))
+    elif args.command == "dataset":
+        real_data = []
+
+        for images, _ in dataloader:
+            real_data.append(images)
+            break
+
+        real_data = torch.cat(real_data, dim=0)
+
+        plot_images(real_data, "CIFAR-10", output_filename=os.path.join(args.output, f"dataset.png"))
     else:
         print(f'Unknown command: {args.command}')
 

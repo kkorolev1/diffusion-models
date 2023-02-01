@@ -3,9 +3,11 @@ import torch.nn as nn
 import numpy as np
 import scipy
 
+from torchmetrics.image.fid import FrechetInceptionDistance
+
 from tqdm import tqdm
 
-
+"""
 class InceptionHeadless(nn.Module):
     def __init__(self):
         super().__init__()
@@ -79,3 +81,10 @@ def fid_score(real_data, fake_data):
     fake_mu, fake_sigma = calculate_activation_statistics(fake_activations)
 
     return frechet_distance(real_mu, real_sigma, fake_mu, fake_sigma).item()
+"""
+
+def fid_score(real_data, fake_data):
+    fid = FrechetInceptionDistance(feature=64, normalize=True)
+    fid.update(real_data, real=True)
+    fid.update(fake_data, real=False)
+    return fid.compute().item()

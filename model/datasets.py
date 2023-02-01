@@ -19,7 +19,7 @@ def get_MNIST(batch_size):
     return dataloader
 
 
-def get_CIFAR10(batch_size, val_size=0.1):
+def get_CIFAR10(batch_size):
     seed = 42
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -32,7 +32,6 @@ def get_CIFAR10(batch_size, val_size=0.1):
     ])
 
     dataset = CIFAR10('./data', train=True, download=True, transform=transform)
-    #train_idxs, val_idxs = random_split(range(len(dataset)), [1 - val_size, val_size])
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
 
     return dataloader
