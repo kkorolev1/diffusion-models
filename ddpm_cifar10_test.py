@@ -9,7 +9,7 @@ import os
 
 from model.datasets import get_CIFAR10
 from model.ddpm import DDPM
-from model.v2.unet import Unet
+from model.unet import Unet
 from model.training import train, sample
 from model.utils import SaveBestModel, load_model, plot_images
 from model.metrics import fid_score
@@ -25,15 +25,15 @@ def main(args):
     print(f'Batch size {batch_size}')
 
     print('Loading CIFAR10...')
-    dataloader = get_CIFAR10(batch_size=batch_size)
-    img_shape = dataloader.dataset[0][0].shape
+    train_loader, val_loader = get_CIFAR10(batch_size=batch_size)
+    img_shape = train_loader.dataset[0][0].shape
 
     device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() else "cpu")
     print(f'Using device {device}')
 
     n_epochs = args.epochs
     
-    unet = Unet(T=1000, n_channels=128, channels_mul=[1, 2, 2, 2], n_residual_blocks=2, dropout=0.1).to(device)
+    unet = Unet(T=1000, ch=128, ch_mult=[1, 2, 2, 2], attn=[1], num_res_blocks=2, dropout=0.1).to(device)
     model = DDPM(unet, device=device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     #optimizer = optim.SGD(model.parameters(), lr=args.lr)
@@ -58,7 +58,22 @@ def main(args):
 
     if args.command == 'train':
         print('Training the model...')
-        loss_log = train(model, dataloader, optimizer, criterion, device, scheduler=None, n_epochs=start_epoch + n_epochs, start_epoch=start_epoch, model_path=args.path, model_saver=model_saver)
+        
+        train(
+            model,
+            optimizer,
+            scheduler,
+            criterion,
+            train_loader,
+            val_loader,
+            device,
+            start_epoch + n_epochs,
+            start_epoch,
+            model_saver,
+            args.path,
+            None
+        )
+
     elif args.command == 'sample':
         print(f'Sampling {num_samples} images...')
         
@@ -73,7 +88,7 @@ def main(args):
         print('Calculating metrics...')
         real_data = []
         
-        for i, (images, _) in enumerate(tqdm(dataloader, desc='Collecting real data')):
+        for i, (images, _) in enumerate(tqdm(val_loader, desc='Collecting real data')):
             if i == num_samples // batch_size:
                 break
             real_data.append(images)
