@@ -5,21 +5,32 @@ from torchvision.datasets import MNIST, CIFAR10
 from torch.utils.data import DataLoader, random_split
 
 
-def get_MNIST(batch_size):
+class ChannelDuplicater:
+    def __call__(self, tensor):
+        return tensor.repeat(3, 1, 1)
+
+
+def get_MNIST(batch_size, val_ratio=0.1):
     seed = 42
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    transform = transforms.Compose([transforms.ToTensor(),
-                                    transforms.Normalize((0.1307,), (0.3081,))])
+    transform = transforms.Compose([
+        transforms.Resize(32),
+        transforms.ToTensor(),
+        ChannelDuplicater(),
+        transforms.Normalize((0.1307,), (0.3081,))
+    ])
 
     dataset = MNIST('data', train=True, download=True, transform=transform)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    train_dataset, val_dataset = random_split(dataset, [1 - val_ratio, val_ratio])
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
-    return dataloader
+    return train_loader, val_loader
 
 
-def get_CIFAR10(batch_size):
+def get_CIFAR10(batch_size, val_ratio=0.1):
     seed = 42
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -32,6 +43,8 @@ def get_CIFAR10(batch_size):
     ])
 
     dataset = CIFAR10('./data', train=True, download=True, transform=transform)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    train_dataset, val_dataset = random_split(dataset, [1 - val_ratio, val_ratio])
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
-    return dataloader
+    return train_loader, val_loader
