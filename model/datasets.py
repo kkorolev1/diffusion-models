@@ -48,3 +48,14 @@ def get_CIFAR10(batch_size, val_ratio=0.1):
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
     return train_loader, val_loader
+
+def get_loaders(dataset_name, batch_size, val_ratio=0.1):
+    dataset_fetchers = {
+        "mnist": get_MNIST,
+        "cifar10": get_CIFAR10
+    }
+
+    if dataset_name not in dataset_fetchers:
+        raise ValueError(f"Unknown dataset name {dataset_name}")
+    
+    return dataset_fetchers[dataset_name](batch_size, val_ratio)

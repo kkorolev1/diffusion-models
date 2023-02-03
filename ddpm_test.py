@@ -7,8 +7,8 @@ import torch.optim as optim
 from argparse import ArgumentParser
 import os
 
-from model.datasets import get_CIFAR10
-from model.ddpm import DDPM
+from model.datasets import get_loaders
+from model.ddpm import DiffusionTrainer, DiffusionSampler
 from model.unet import Unet
 from model.training import train, sample
 from model.utils import SaveBestModel, load_model, plot_images
@@ -24,8 +24,8 @@ def main(args):
 
     print(f'Batch size {batch_size}')
 
-    print('Loading CIFAR10...')
-    train_loader, val_loader = get_CIFAR10(batch_size=batch_size)
+    print(f'Loading {args.dataset}...')
+    train_loader, val_loader = get_loaders(args.dataset, batch_size=batch_size)
     img_shape = train_loader.dataset[0][0].shape
 
     device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() else "cpu")
@@ -83,38 +83,6 @@ def main(args):
             os.mkdir(args.output)
 
         plot_images(sampled_images, "Sampled images", output_filename=os.path.join(args.output, f"sampled.png"))
-
-    elif args.command == 'metrics':
-        print('Calculating metrics...')
-        real_data = []
-        
-        for i, (images, _) in enumerate(tqdm(val_loader, desc='Collecting real data')):
-            if i == num_samples // batch_size:
-                break
-            real_data.append(images)
-        
-        print('Real data is collected')
-        real_data = torch.cat(real_data, dim=0)
-
-        print('Sampling fake data...')
-        fake_data = torch.load('fake_data.pt')
-
-        #fake_data = sample(model, num_samples, img_shape, batch_size, device)
-        #torch.save(fake_data, 'fake_data.pt')
-
-        fid = fid_score(real_data, fake_data)
-
-        print('FID {:.5f}'.format(fid))
-    elif args.command == "dataset":
-        real_data = []
-
-        for images, _ in dataloader:
-            real_data.append(images)
-            break
-
-        real_data = torch.cat(real_data, dim=0)
-
-        plot_images(real_data, "CIFAR-10", output_filename=os.path.join(args.output, f"dataset.png"))
     else:
         print(f'Unknown command: {args.command}')
 
@@ -129,6 +97,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--path', help='Path to load/save the model', default='bin/ddpm.pth')
     parser.add_argument('-o', '--output', help='Output directory', default='out')
     parser.add_argument('-c', '--cuda', type=int, help='CUDA device', default=0)
+    parser.add_argument('-d', '--dataset', type=str, help='Dataset name', default='cifar10')
 
     args = parser.parse_args()
 
