@@ -44,7 +44,7 @@ def sample(model, n_samples, img_shape, batch_size, device):
     sampled_images = torch.cat(sampled_images, dim=0)
     return sampled_images
 
-def train_epoch(model, optimizer, criterion, dataloader, device, tqdm_desc):
+def train_epoch(model, optimizer, dataloader, device, tqdm_desc):
     model.train()
 
     epoch_loss = 0.0
@@ -54,13 +54,7 @@ def train_epoch(model, optimizer, criterion, dataloader, device, tqdm_desc):
 
         optimizer.zero_grad()
 
-        eps = torch.randn_like(img).to(device)
-        t = torch.randint(model.T, (img.shape[0],)).to(device)
-        destroyed_img = model(img, t, eps)
-
-        eps_pred = model.backward(destroyed_img, t)
-
-        loss = criterion(eps, eps_pred)
+        loss = model(img).mean()
         epoch_loss += loss.item() * img.shape[0]
 
         loss.backward()
@@ -70,31 +64,24 @@ def train_epoch(model, optimizer, criterion, dataloader, device, tqdm_desc):
     return epoch_loss
 
 @torch.no_grad()
-def validate_epoch(model, criterion, dataloader, device, tqdm_desc):
-    model.train()
+def validate_epoch(model, dataloader, device, tqdm_desc):
+    model.eval()
 
     epoch_loss = 0.0
 
     for img, _ in tqdm(dataloader, desc=tqdm_desc):
         img = img.to(device)
-
-        eps = torch.randn_like(img).to(device)
-        t = torch.randint(model.T, (img.shape[0],)).to(device)
-        destroyed_img = model(img, t, eps)
-
-        eps_pred = model.backward(destroyed_img, t)
-
-        loss = criterion(eps, eps_pred)
+        loss = model(img).mean()
         epoch_loss += loss.item() * img.shape[0]
 
     epoch_loss /= len(dataloader.dataset)
     return epoch_loss
 
-def train(model, optimizer, scheduler, criterion, train_loader, val_loader, device, n_epochs, start_epoch, model_saver, model_path, writer=None):
+def train(model, optimizer, scheduler, train_loader, val_loader, device, n_epochs, start_epoch, model_saver, model_path, writer=None):
 
     for epoch in range(start_epoch, n_epochs):
-        train_loss = train_epoch(model, optimizer, criterion, train_loader, device, f'Training epoch {epoch+1}/{n_epochs}')
-        val_loss = validate_epoch(model, criterion, val_loader, device, f'Validating epoch {epoch+1}/{n_epochs}')
+        train_loss = train_epoch(model, optimizer, train_loader, device, f'Training epoch {epoch+1}/{n_epochs}')
+        val_loss = validate_epoch(model, val_loader, device, f'Validating epoch {epoch+1}/{n_epochs}')
         
         if scheduler is not None:
             scheduler.step(val_loss)
