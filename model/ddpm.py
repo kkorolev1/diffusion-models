@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from tqdm.notebook import tqdm
 
 def extract(v, t, x_shape):
     """
@@ -115,7 +115,7 @@ class DiffusionSampler(nn.Module):
         x_t = x_T
 
         for timestamp in reversed(range(self.T)):
-            t = torch.ones((x_T.shape[0], ), dtype=torch.long) * timestamp
+            t = torch.ones((x_T.shape[0], ), dtype=torch.long, device=x_t.device) * timestamp
             mean, log_var = self.p_mean_variance(x_t, t)
             eps = torch.randn_like(x_t) if timestamp > 0 else 0
             x_t = mean + torch.exp(0.5 * log_var) * eps

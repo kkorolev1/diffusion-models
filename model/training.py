@@ -13,9 +13,11 @@ def sample(model, n_samples, img_shape, batch_size, device):
         print(f'Sampling #{i // batch_size + 1} batch...')
         size = min(batch_size, n_samples - i)
         x_T = torch.randn(size, *img_shape).to(device)
-        x_0 = model(X_t).cpu()
+        x_0 = model(x_T).cpu()
         sampled_images.append(x_0)
-    
+        
+        torch.save(torch.cat(sampled_images, dim=0), 'tmp_fake_data.pt')
+        
     sampled_images = torch.cat(sampled_images, dim=0)
     return sampled_images
 
