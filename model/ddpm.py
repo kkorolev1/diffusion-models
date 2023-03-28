@@ -114,7 +114,7 @@ class DiffusionSampler(nn.Module):
     def forward(self, x_T):
         x_t = x_T
 
-        for timestamp in reversed(range(self.T)):
+        for timestamp in tqdm(list(reversed(range(self.T)))):
             t = torch.ones((x_T.shape[0], ), dtype=torch.long, device=x_t.device) * timestamp
             mean, log_var = self.p_mean_variance(x_t, t)
             eps = torch.randn_like(x_t) if timestamp > 0 else 0

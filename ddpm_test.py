@@ -1,90 +1,76 @@
-#!/home/kirill_k/anaconda3/bin/python3
+#!~/.conda/envs/kakorolev/bin/python3
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from argparse import ArgumentParser
+import wandb
+import logging
 import os
 
 from model.datasets import get_loaders
-from model.ddpm import DiffusionTrainer, DiffusionSampler
-from model.unet import Unet
-from model.training import train, sample
-from model.utils import SaveBestModel, load_model, plot_images
-from model.metrics import fid_score
+
+from model.training import DDPM
+from model.utils import plot_images
+from model.metrics import fid_score, inception_score
 
 import gc
 from tqdm import tqdm
 
+from argparse import ArgumentParser
+
+
+wandb.config = {
+    "dataset": "cifar10",
+    "learning_rate": 2e-5,
+    "epochs": 2000,
+    "batch_size": 128,
+    "ema_decay": 0.9999,
+    "grad_clip": 1,
+    "warmup": 1000,
+    "model_path": "bin/cifar10_.pth",
+    "epochs_per_save": 15,
+    "epochs_per_sample": 15,
+    "num_workers": 8
+}
+
+logging.basicConfig(
+    handlers=[logging.FileHandler("ddpm.log", mode='w'), logging.StreamHandler()],
+    level=logging.INFO, 
+    format='[%(asctime)s] %(message)s',
+    datefmt='%H:%M:%S'
+ )
 
 def main(args):
-    batch_size = args.batch_size
-    num_samples = max(args.samples, batch_size)
-
-    print(f'Batch size {batch_size}')
-
-    print(f'Loading {args.dataset}...')
-    train_loader, val_loader = get_loaders(args.dataset, batch_size=batch_size)
-    img_shape = train_loader.dataset[0][0].shape
-
-    device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() else "cpu")
-    print(f'Using device {device}')
-
-    n_epochs = args.epochs
+    device = torch.device(f"cuda" if torch.cuda.is_available() else "cpu")
+    logging.info(device)
     
-    unet = Unet(T=1000, ch=128, ch_mult=[1, 2, 2, 2], attn=[1], num_res_blocks=2, dropout=0.1).to(device)
-    model = DDPM(unet, device=device)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    #optimizer = optim.SGD(model.parameters(), lr=args.lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-    criterion = nn.MSELoss()
-
-    model_saver = SaveBestModel()
-    start_epoch = 0
-
-    # Empty cache
-    #torch.cuda.empty_cache()
-    #print("Collected: {}".format(gc.collect()))
-
-    if os.path.exists(args.path):
-        loss = float("inf")
-        try:
-            model, optimizer, scheduler, start_epoch, loss = load_model(model, optimizer, scheduler, args.path)
-        except Exception as exc:
-            print(f"Cannot load model from {args.path}")
-            print(exc)
-        model_saver = SaveBestModel(loss)
-
+    ddpm = DDPM(device)
+    ddpm.load("bin/cifar10_1740.pth")
+    
     if args.command == 'train':
-        print('Training the model...')
+        wandb.init(project="diffusion", entity="kkorolev", config=wandb.config)
         
-        train(
-            model,
-            optimizer,
-            scheduler,
-            criterion,
-            train_loader,
-            val_loader,
-            device,
-            start_epoch + n_epochs,
-            start_epoch,
-            model_saver,
-            args.path,
-            None
-        )
-
-    elif args.command == 'sample':
-        print(f'Sampling {num_samples} images...')
+        logging.info('Training the model...')
         
-        sampled_images = sample(model, num_samples, img_shape, batch_size, device)
+        train_loader = get_loaders(wandb.config['dataset'], batch_size=wandb.config['batch_size'], val_ratio=None, train=True)
+        
+        ddpm.train(train_loader, None)
+        
+    elif args.command == 'sample':        
+        train_loader = get_loaders(wandb.config['dataset'], batch_size=wandb.config['batch_size'], val_ratio=None, train=True)
+        num_samples = len(train_loader.dataset)
+        logging.info(f'Sampling {num_samples} images...')
+            
+        batch_images = ddpm.sample(ddpm.ema_sampler, num_samples) 
+        torch.save(batch_images, 'fake_data_1740.pt') 
         
         if not os.path.exists(args.output):
             os.mkdir(args.output)
-
-        plot_images(sampled_images, "Sampled images", output_filename=os.path.join(args.output, f"sampled.png"))
+            
+        plot_images(batch_images[:128,...], "Sampled images", output_filename=os.path.join(args.output, f"sampled.png"))
     else:
-        print(f'Unknown command: {args.command}')
+        logging.info(f'Unknown command: {args.command}')
 
 
 if __name__ == "__main__":
